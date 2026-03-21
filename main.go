@@ -5,31 +5,39 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
-
+	err := godotenv.Load()
+	handleError(err)
 	openConnection := true
 
 	for openConnection {
-
 		// create buffer for reader
 		reader := bufio.NewReader(os.Stdin)
 
 		//get user input
-		fmt.Println("You:")
+		fmt.Print("\nYou:")
 		userInput, _ := reader.ReadString('\n')
 		userInput = strings.TrimSpace(userInput)
 
 		if userInput == "exit" {
-			fmt.Print("here?")
 			openConnection = false
 		}
 
-		fmt.Println("Chani in Go: Hey, ready to begin?")
-		fmt.Printf("You wrote: %s", userInput)
+		resp := SendMessageToGroq(userInput)
+		fmt.Printf("Chani: %s", resp.Choices[0].Message.Content)
 
 	}
 
 	fmt.Print("Chani goes offline")
+}
+
+func handleError(err error) {
+	if err != nil {
+		fmt.Printf("error: %v", err)
+		os.Exit(1)
+	}
 }
