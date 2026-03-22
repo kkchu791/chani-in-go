@@ -27,6 +27,8 @@ func main() {
 			openConnection = false
 		}
 
+		// send this message to the server
+
 		resp := SendMessageToGroq(userInput)
 		fmt.Printf("Chani: %s", resp.Choices[0].Message.Content)
 
