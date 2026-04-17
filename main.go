@@ -1,40 +1,56 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/joho/godotenv"
+
+	"net/http"
+
+	"github.com/rs/cors"
 )
+
+type MessageRequest struct {
+	Message string `json:"message"`
+}
+
+func messageHandler(w http.ResponseWriter, r *http.Request) {
+	var data MessageRequest
+
+	// Decode the request body into the struct
+	err := json.NewDecoder(r.Body).Decode(&data)
+	handleError(err)
+
+	// Use the decoded data...
+	resp := SendMessageToGroq(data.Message)
+
+	chaniResp := resp.Choices[0].Message.Content
+
+	w.Write([]byte(chaniResp))
+
+}
 
 func main() {
 	err := godotenv.Load()
 	handleError(err)
-	openConnection := true
 
-	for openConnection {
-		// create buffer for reader
-		reader := bufio.NewReader(os.Stdin)
+	mux := http.NewServeMux()
 
-		//get user input
-		fmt.Print("\nYou:")
-		userInput, _ := reader.ReadString('\n')
-		userInput = strings.TrimSpace(userInput)
+	mux.HandleFunc("/message", messageHandler)
 
-		if userInput == "exit" {
-			openConnection = false
-		}
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type"},
+		AllowCredentials: true,
+		Debug:            true,
+	})
 
-		// send this message to the server
+	handler := c.Handler(mux)
 
-		resp := SendMessageToGroq(userInput)
-		fmt.Printf("Chani: %s", resp.Choices[0].Message.Content)
-
-	}
-
-	fmt.Print("Chani goes offline")
+	http.ListenAndServe(":9080", handler)
 }
 
 func handleError(err error) {

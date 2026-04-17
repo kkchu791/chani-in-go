@@ -5,7 +5,14 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sync"
 )
+
+// holds connected clients
+type ClientManager struct {
+	clients map[chan string]bool
+	mutex   sync.Mutex
+}
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
@@ -14,13 +21,28 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(body))
 }
 
-func handler2(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hey Kirk")
+func streamHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	clientChan := make(chan string)
+	flusher, ok := w.(http.Flusher)
+	
+	if !ok {
+		http.Error(w, "streaming not supporqqted", http.StatusInternalServerError)
+		return
+	}
+
 }
 
 func main() {
+	manager := &ClientManager{
+		clients: make(map[chan string]bool),
+	}
+
 	http.HandleFunc("/", handler)
-	http.HandleFunc("/kirk", handler2)
+	http.HandleFunc("/stream", streamHandler)
 	http.ListenAndServe(":8080", nil)
 }
 

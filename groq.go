@@ -8,7 +8,6 @@ import (
 )
 
 func SendMessageToGroq(m string) *groq.ChatCompletionResponse {
-
 	cli := groq.NewClient(os.Getenv("GROQ_API_KEY"), &http.Client{})
 	req := groq.ChatCompletionRequest{
 		Messages: []groq.Message{
@@ -17,7 +16,7 @@ func SendMessageToGroq(m string) *groq.ChatCompletionResponse {
 				Content: m,
 			},
 		},
-		Model:       "llama-3.3-70b-versatile", // Changed from 70B → 8B (cheaper & faster)
+		Model:       "llama-3.3-70b-versatile",
 		MaxTokens:   150,
 		Temperature: 0.7,
 		TopP:        0.9,
