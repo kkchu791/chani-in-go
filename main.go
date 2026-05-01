@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -12,33 +11,15 @@ import (
 	"github.com/rs/cors"
 )
 
-type MessageRequest struct {
-	Message string `json:"message"`
-}
-
-func messageHandler(w http.ResponseWriter, r *http.Request) {
-	var data MessageRequest
-
-	// Decode the request body into the struct
-	err := json.NewDecoder(r.Body).Decode(&data)
-	handleError(err)
-
-	// Use the decoded data...
-	resp := SendMessageToGroq(data.Message)
-
-	chaniResp := resp.Choices[0].Message.Content
-
-	w.Write([]byte(chaniResp))
-
-}
-
 func main() {
 	err := godotenv.Load()
 	handleError(err)
 
-	mux := http.NewServeMux()
+	server := NewServer()
 
-	mux.HandleFunc("/message", messageHandler)
+	//setup routes
+	mux := http.NewServeMux()
+	server.SetupRoutes(mux)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:3000"},
