@@ -1,25 +1,23 @@
-package main
+package api
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/joho/godotenv"
-
 	"net/http"
 
+	"github.com/joho/godotenv"
 	"github.com/rs/cors"
+
+	server "chani-in-go/internal/infra/http"
+	"chani-in-go/internal/platform/errors"
 )
 
-func main() {
+func Run() {
 	err := godotenv.Load()
-	handleError(err)
+	errors.HandleError(err)
 
-	server := NewServer()
+	srv := server.NewServer()
 
-	//setup routes
 	mux := http.NewServeMux()
-	server.SetupRoutes(mux)
+	srv.SetupRoutes(mux)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:3000"},
@@ -30,13 +28,5 @@ func main() {
 	})
 
 	handler := c.Handler(mux)
-
 	http.ListenAndServe(":9080", handler)
-}
-
-func handleError(err error) {
-	if err != nil {
-		fmt.Printf("error: %v", err)
-		os.Exit(1)
-	}
 }

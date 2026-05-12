@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"slices"
@@ -8,7 +8,7 @@ import (
 // registry, who is current listening
 
 // {
-// 27: [broswerChannel, terminal Channel]
+// 27: [browserChannel, terminalChannel]
 // }
 
 type Registry struct {

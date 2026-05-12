@@ -1,18 +1,17 @@
-package main
+package server
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"chani-in-go/internal/domain/model"
+	"chani-in-go/internal/infra/groq"
+	"chani-in-go/internal/platform/errors"
 )
 
 type Server struct {
 	registry *Registry
-}
-
-type MessageRequest struct {
-	Message string `json:"message"`
-	UserID  string `json:"userId"`
 }
 
 func NewServer() *Server {
@@ -27,16 +26,15 @@ func (s *Server) SetupRoutes(mux *http.ServeMux) {
 }
 
 func (s *Server) streamHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Content-Type", SSEContentType)
+	w.Header().Set("Cache-Control", SSECacheControl)
+	w.Header().Set("Connection", SSEConnection)
 
 	userID := r.URL.Query().Get("user")
 	cli := NewClient(userID)
 	s.registry.Register(userID, cli)
 
 	flusher, ok := w.(http.Flusher)
-
 	if !ok {
 		http.Error(w, "streaming not supported", http.StatusInternalServerError)
 		return
@@ -55,16 +53,12 @@ func (s *Server) streamHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) messageHandler(w http.ResponseWriter, r *http.Request) {
-	var data MessageRequest
+	var data model.MessageRequest
 	err := json.NewDecoder(r.Body).Decode(&data)
-	handleError(err)
-
-	// get clients from registry
+	errors.HandleError(err)
 
 	clients := s.registry.GetClientsByUserId(data.UserID)
-
-	// call SendMessagetoGroqStream
-	chunkChannel := SendMessageToGroqStream(r.Context(), data.Message)
+	chunkChannel := groq.SendMessageToGroqStream(r.Context(), data.Message)
 
 	for chunk := range chunkChannel {
 		for _, cli := range clients {
@@ -72,8 +66,7 @@ func (s *Server) messageHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// After the stream is fully consumed, send [DONE] once to all clients
 	for _, cli := range clients {
-		cli.Stream <- "[DONE]"
+		cli.Stream <- SSEDone
 	}
 }
